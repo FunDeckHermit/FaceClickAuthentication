@@ -37,35 +37,6 @@ if (isset($_GET['auth'])) { ?>
      <meta name="viewport" content="width=device-width, initial-scale=1">
      <link rel="stylesheet" href="/css/bootstrap.min.css">
 	 <link rel="stylesheet" href="/css/custom.css">
-	 <style>
-		#form-id
-		{
-		  display:none;
-		}
-
-		.hover_group:hover
-		{
-			opacity:1;
-		}
-
-		#projectsvg
-		{
-			position: relative;
-			width: 100%;
-			padding-bottom: 77%;
-			vertical-align: middle;
-			margin: 0;
-			overflow: hidden;
-		}
-
-		#projectsvg svg
-		{
-			display: inline-block;
-			position: absolute;
-			top: 0;
-			left: 0;
-		}
-	 </style>
 	 <script>
 		window.addEventListener("DOMContentLoaded", function () {
 		  var form = document.getElementById("form-id");
