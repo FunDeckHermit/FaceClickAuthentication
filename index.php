@@ -1,33 +1,74 @@
 <?php
 session_start();
-$error = "";
+$message = "";
 $authenticated = false;
+$blocked = true;
 $cookie_name = "SomeSortOfAuthCookieName";
 $cookie_value = "AReallyLongRandomCookieValueThatWouldBeVeryHardToForgeOrAtLeastAsHardAsForgingABasicAuthHeader";
 $cookie_domain = ".domain.com";
 $user = '2100';
 $pass = '1000';
 
+$db = new SQLite3('blacklist.db');
+$db->exec("CREATE TABLE IF NOT EXISTS t1(ip TEXT PRIMARY KEY, isotime TEXT)");
+
+
+$res = $db->query("SELECT * FROM t1 WHERE ip='".$_SERVER['REMOTE_ADDR']."'");
+$row = $res->fetchArray(1);
+if($row != false){
+	$pastdate = new DateTime($row['isotime']);
+	$now = new DateTime("now");
+	$hours = $pastdate->diff($now)->h;
+	if($hours > 24){
+		$blocked = false;
+	}
+}else {
+	$blocked = false;
+}
+
 
 if(isset($_COOKIE[$cookie_name]) && $_COOKIE[$cookie_name] == $cookie_value) {
   $authenticated = true;
 }
-if(isset($_POST["password"])) {
-  $authenticated = $_POST["username"] == $user && $_POST["password"] == $pass;
-  if(!$authenticated) {
-    $error = "Invalid username or password.";
-  }
-  else {
-    setcookie($cookie_name, $cookie_value, time() + (86400 * 30), "/", $cookie_domain);
-    header("Location: https://" . $_POST["return"]);
-  }
+if(isset($_POST["password"])) {	
+	/* Clear ban if correct area has been clicked */
+	if($_POST["username"] == '0' && $_POST["password"] == '0'){
+	   $db->query(	"DELETE FROM t1 WHERE ip='".$_SERVER['REMOTE_ADDR']."'");
+	   $message = "<h2>Ban lifted</h2>";
+	   $blocked = false;
+	}
+	else{
+		$authenticated = $_POST["username"] == $user && $_POST["password"] == $pass && $blocked == false;
+		if(!$authenticated) {
+			$message = "<h2>Input incorrect: 24 uur ban on your IP-adres</h2>";
+			$db->query(	"INSERT INTO t1(ip, isotime)" . 
+					"VALUES ('".$_SERVER['REMOTE_ADDR']."', datetime('now', 'localtime'))" . 
+					"ON CONFLICT(ip) DO UPDATE SET isotime = datetime('now', 'localtime')");
+		}
+		else {
+			setcookie($cookie_name, $cookie_value, time() + (86400 * 30), "/", $cookie_domain);
+			header("Location: https://" . $_POST["return"]);
+		}
+	}
 }
+
+
 if($authenticated) {
   header("X-CustomAuth: authenticated", true, 200);
 } else {
   header("X-CustomAuth: unauthenticated", true, 401);
+}	
+
+
+if (isset($_GET['auth'])) { 
+
+if($blocked){
+	$message = "<h2>You need to wait another ". (24-$hours) ." hours before your next login attemt</h2>";
 }
-if (isset($_GET['auth'])) { ?>
+
+echo $message;
+
+?>
 <!DOCTYPE html>
 <html>
    <head>
